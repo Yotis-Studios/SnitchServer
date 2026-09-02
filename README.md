@@ -21,10 +21,24 @@ npm run build
 
 From the root project directory:
 ```
-node index.js
+node snitch.js
 ```
 
 By default the app will run on port `3001`.
+
+## Configuration
+
+All optional, all read from the environment:
+
+| variable | default | |
+|---|---|---|
+| `PORT` | `3001` | |
+| `ADMIN_PASSWORD` | *(empty)* | **An empty value disables authentication.** `GET` and `DELETE` are then open to anyone who can reach the server, and crash reports contain device information. Set it. |
+| `DB_PATH` | `./snitch.db` | crash reports |
+| `REPORT_DB_PATH` | `./reports.db` | player reports, deliberately a separate store |
+| `REPORT_RATE_LIMIT` | `20` | reports accepted per IP per hour |
+
+The server prints a warning on startup when `ADMIN_PASSWORD` is unset.
 
 ## Client Setup
 

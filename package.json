@@ -2,7 +2,7 @@
   "name": "snitchserver",
   "version": "1.0.0",
   "description": "Collects Snitch crash logs over HTTP",
-  "main": "index.js",
+  "main": "snitch.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
