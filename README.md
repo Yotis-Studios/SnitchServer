@@ -34,7 +34,7 @@ All optional, all read from the environment:
 |---|---|---|
 | `PORT` | `3001` | |
 | `HOST` | *(all interfaces)* | Set `127.0.0.1` behind nginx so the port is not reachable directly. |
-| `ADMIN_PASSWORD` | *(empty)* | **An empty value disables authentication.** Every `GET`, `DELETE` and resolve is then open to anyone who can reach the server, and crashes contain device information. Set it. |
+| `ADMIN_PASSWORD` | *(empty)* | The shared password, raw in `Authorization`. With `YOTIS_URL` set it is the fallback for when the account API is down (open the dashboard with `?password`); leave it empty to allow Yotis sign-in only. **With neither set, every admin route is open.** |
 | `GAMES` | *(empty)* | Comma-separated game ids accepted, e.g. `raifuwars,biplanebattle`. A crash or report naming another game is refused (400). Empty accepts any well-formed id, and the server warns on boot. |
 | `DEFAULT_GAME` | `raifuwars` | The game of a crash or report sent without a game id (Raifu Wars clients from before ids existed). |
 | `DB_PATH` | `./snitch.db` | crashes |
@@ -44,12 +44,16 @@ All optional, all read from the environment:
 | `REPORT_RATE_LIMIT` | `20` | reports accepted per IP per hour |
 | `RETENTION_DAYS` | `730` | crashes older than this are deleted hourly (the privacy policy's 24 months); `0` keeps them. Reports are never deleted by age. |
 | `TRUST_PROXY` | `loopback` | Express `trust proxy`: whose `X-Forwarded-For` is believed for the client address. |
+| `YOTIS_URL` | *(empty)* | Staff sign-in through Yotis Online, e.g. `https://yotisonline.com`. The dashboard sends the browser to its `/staff` page and accepts the staff token it comes back with. |
+| `YOTIS_CALLBACK` | *(empty)* | This dashboard's address, e.g. `https://crash.yotisstudios.com/`: must equal the callback the account API's `STAFF_SERVICES` lists for this service. |
+| `YOTIS_SERVICE` | `crash` | This service's name in `STAFF_SERVICES` (the tokens' `aud`). |
+| `YOTIS_JWKS_URL` | `YOTIS_URL` + `/api/.well-known/staff-jwks` | Where the public keys are read; on the same host as the account API, its loopback address. |
 
 ## API
 
 Open (game clients have no credential): `POST /api/crash`, `POST /api/report`, `GET /api/health`.
 
-Admin (`Authorization: <ADMIN_PASSWORD>`): `GET /api/crash?game=&fingerprint=&limit=`, `GET /api/crash/groups?game=`,
+Open: `GET /api/auth` (how the dashboard signs in). Admin (`Authorization: Bearer <Yotis staff token>` or `Authorization: <ADMIN_PASSWORD>`): `GET /api/me`, `GET /api/crash?game=&fingerprint=&limit=`, `GET /api/crash/groups?game=`,
 `POST /api/crash/groups/:fingerprint/resolve` (`{"resolved": false}` reopens), `DELETE /api/crash/groups/:fingerprint`,
 `DELETE /api/crash/:id`, `GET /api/games`, `GET /api/report?game=`, `DELETE /api/report/:id`.
 

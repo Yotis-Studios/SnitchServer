@@ -38,7 +38,7 @@ export default {
                 },
                 (error) => {
                     console.log(error);
-                    this.displayText = 'Error loading reports';
+                    this.displayText = error.signInFailed || 'Error loading reports';
                 }
             );
         },

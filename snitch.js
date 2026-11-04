@@ -25,9 +25,18 @@ const server = createServer({
     retentionDays: parseInt(env.RETENTION_DAYS || '730', 10),
     trustProxy: env.TRUST_PROXY || 'loopback',
     staticDir: path.join(__dirname, 'app', 'dist'),
+    // Staff sign-in through Yotis Online, when YOTIS_URL is set. The account API must list this
+    // service in its STAFF_SERVICES with exactly YOTIS_CALLBACK.
+    yotis: env.YOTIS_URL ? {
+        signin: env.YOTIS_URL.replace(/\/$/, '') + '/staff',
+        service: env.YOTIS_SERVICE || 'crash',
+        callback: env.YOTIS_CALLBACK || '',
+        jwksUrl: env.YOTIS_JWKS_URL || env.YOTIS_URL.replace(/\/$/, '') + '/api/.well-known/staff-jwks',
+    } : null,
 });
 
-if (!env.ADMIN_PASSWORD) console.warn('WARNING: ADMIN_PASSWORD is not set -- every admin route is unauthenticated');
+if (!env.ADMIN_PASSWORD && !env.YOTIS_URL) console.warn('WARNING: neither YOTIS_URL nor ADMIN_PASSWORD is set -- every admin route is unauthenticated');
+if (env.YOTIS_URL && !env.YOTIS_CALLBACK) console.warn('WARNING: YOTIS_URL is set without YOTIS_CALLBACK -- the dashboard cannot sign in through Yotis');
 if (!list(env.GAMES).length) console.warn('WARNING: GAMES is not set -- crashes from any game id are accepted');
 
 const port = parseInt(env.PORT || '3001', 10);

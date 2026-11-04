@@ -54,7 +54,7 @@ export default {
                 },
                 (error) => {
                     console.log(error);
-                    this.displayText = 'Error loading crashes';
+                    this.displayText = error.signInFailed || 'Error loading crashes';
                 }
             );
         },

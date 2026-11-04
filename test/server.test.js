@@ -34,6 +34,7 @@ async function boot(t, config) {
         try { json = JSON.parse(text); } catch (e) { json = undefined; }
         return { status: res.status, json, text };
     };
+    call.base = base;
     return { call, server: s };
 }
 
@@ -177,6 +178,41 @@ test('crashes and reports from before games are migrated on load', async (t) => 
     assert.strictEqual(a1.fingerprint, crashes.find((c) => c._id === 'a2').fingerprint);
     assert.strictEqual((await call('GET', '/api/report?game=raifuwars')).json.length, 1);
     assert.ok(!fs.readFileSync(path.join(dir, 'snitch.db'), 'utf8').includes('device-id'), 'the file was compacted after the migration');
+});
+
+// A stand-in for the account API's staff tokens: same format, a key made for the test.
+const cryptoMod = require('crypto');
+function staffSigner() {
+    const { privateKey, publicKey } = cryptoMod.generateKeyPairSync('ed25519');
+    const jwk = publicKey.export({ format: 'jwk' });
+    const kid = 'test-kid';
+    const b64 = (v) => Buffer.from(JSON.stringify(v)).toString('base64url');
+    const sign = (claims, lifetime = 3600) => {
+        const now = Math.floor(Date.now() / 1000);
+        const input = b64({ alg: 'EdDSA', typ: 'JWT', kid }) + '.' + b64({ iss: 'yotisonline', kind: 'staff', iat: now, exp: now + lifetime, ...claims });
+        return input + '.' + cryptoMod.sign(null, Buffer.from(input), privateKey).toString('base64url');
+    };
+    return { sign, jwks: { keys: [{ ...jwk, kid, alg: 'EdDSA', use: 'sig' }] } };
+}
+
+test('Yotis staff tokens open the admin routes; the password still works as a fallback', async (t) => {
+    const s = staffSigner();
+    let fetches = 0;
+    const { call } = await boot(t, { yotis: { signin: 'https://yo.test/staff', service: 'crash', callback: 'https://crash.test/', fetchJwks: async () => { fetches += 1; return s.jwks; } } });
+    const bearer = async (token, url = '/api/crash') => (await fetch(call.base + url, { headers: { Authorization: 'Bearer ' + token } })).status;
+    const admin = (extra = {}, lifetime) => s.sign({ aud: 'crash', sub: 'u:1', name: 'Admin', role: 2, ...extra }, lifetime);
+    assert.strictEqual(await bearer(admin()), 200);
+    assert.strictEqual(await bearer(admin({ aud: 'wiki' })), 401, 'another service');
+    assert.strictEqual(await bearer(admin({}, -10)), 401, 'expired');
+    assert.strictEqual(await bearer(admin({ kind: 'user' })), 401, 'not a staff token');
+    assert.strictEqual(await bearer(staffSigner().sign({ aud: 'crash', sub: 'u:1', name: 'x', role: 2 })), 401, 'another key');
+    assert.ok(fetches <= 2, 'unknown keys refetch at most once a minute');
+    assert.strictEqual((await call('GET', '/api/crash')).status, 200, 'the password');
+    assert.strictEqual((await call('GET', '/api/crash', undefined, false)).status, 401);
+    const me = await fetch(call.base + '/api/me', { headers: { Authorization: 'Bearer ' + admin() } });
+    assert.deepStrictEqual(await me.json(), { name: 'Admin', via: 'yotis' });
+    const auth = (await call('GET', '/api/auth', undefined, false)).json;
+    assert.deepStrictEqual(auth, { yotis: { signin: 'https://yo.test/staff', service: 'crash', callback: 'https://crash.test/' }, password: true });
 });
 
 test('fingerprints ignore version-specific noise but not the error', () => {
