@@ -58,5 +58,7 @@ typings/
 # dotenv environment variables file
 .env
 
-# database file
+# database files
 snitch.db
+reports.db
+groups.db

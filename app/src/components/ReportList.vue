@@ -14,6 +14,7 @@ import ReportCard from './ReportCard.vue';
 
 export default {
     components: { ReportCard },
+    props: { game: { type: String, default: '' } },
     data() {
         return {
             // Distinct from "none found", because the two look identical on screen and mean
@@ -30,7 +31,7 @@ export default {
             // No auth handling here on purpose: the axios interceptor in auth.js attaches the
             // password and re-prompts on a 401 for every request in the app. See the note there
             // about why this stopped being per-component.
-            this.$http.get('/api/report').then(
+            this.$http.get('/api/report', { params: this.game ? { game: this.game } : {} }).then(
                 (response) => {
                     this.reports = response.data;
                     this.displayText = 'No reports here!';

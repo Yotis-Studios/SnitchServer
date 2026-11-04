@@ -8,6 +8,7 @@
             <div class="alert alert-secondary">
                 <button class="btn btn-outline-danger btn-sm float-end" @click="deleteReport">Delete</button>
                 <span class="fs-5">Slot {{ report.reportedSlot }}</span>
+                <span v-if="report.game" class="badge bg-secondary ms-2">{{ report.game }}</span>
                 <p class="fw-light mb-0">Reported {{ date.toLocaleString() }}</p>
                 <p v-if="report.version" class="fw-light mb-0">{{ report.version }}</p>
                 <p v-if="report.server" class="fw-light mb-0">Server {{ report.server }}</p>
